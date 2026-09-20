@@ -1,0 +1,80 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pc-voice-agent"
+version = "0.1.0"
+description = "A Windows desktop voice agent for local speech-to-text typing and computer control"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+    { name = "blcoded" }
+]
+dependencies = [
+    "PySide6>=6.6.0",
+    "faster-whisper>=1.0.0",
+    "sounddevice>=0.4.6",
+    "numpy>=1.24.0",
+    "pynput>=1.7.6",
+    "pywin32>=306; sys_platform == 'win32'",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-qt>=4.4.0",
+    "pytest-mock>=3.12.0",
+    "mypy>=1.9.0",
+    "ruff>=0.3.0",
+    "types-pywin32>=306.0.0.12",
+]
+
+[project.scripts]
+pc-voice-agent = "voice_agent.app.main:main"
+
+[tool.setuptools.packages.find]
+include = ["voice_agent*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["voice_agent"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = [
+    "faster_whisper.*",
+    "sounddevice.*",
+    "pynput.*",
+    "win32clipboard.*",
+    "win32con.*",
+    "win32gui.*",
+    "win32process.*",
+    "win32api.*",
+    "pywintypes.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
