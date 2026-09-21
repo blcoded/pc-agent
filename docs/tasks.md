@@ -78,7 +78,7 @@ voice_agent/
 | **TASK-2.4** | Phase 2 | Audio / STT | faster-whisper Local Engine Implementation | `[x]` |
 | **TASK-3.1** | Phase 3 | Input | Global Hotkey Hook & Tap vs. Hold Engine | `[x]` |
 | **TASK-3.2** | Phase 3 | Dictation | Win32 Clipboard Manager (Format Preservation) | `[x]` |
-| **TASK-3.3** | Phase 3 | Dictation | Text Normalizer & Linguistic Cleaner | `[ ]` |
+| **TASK-3.3** | Phase 3 | Dictation | Text Normalizer & Linguistic Cleaner | `[x]` |
 | **TASK-3.4** | Phase 3 | Dictation | Dictation Formatting Command Parser | `[ ]` |
 | **TASK-3.5** | Phase 3 | Dictation | Hybrid Text Inserter & Fallback Notifier | `[ ]` |
 | **TASK-3.6** | Phase 3 | Dictation | Dictation Pipeline Coordinator & State Machine | `[ ]` |
