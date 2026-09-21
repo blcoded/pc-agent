@@ -97,7 +97,7 @@ voice_agent/
 | **TASK-6.6** | Phase 6 | Actions | Clipboard Control Actions | `[x]` |
 | **TASK-6.7** | Phase 6 | Control Core| Multi-Step Command Router & Execution Pipeline | `[x]` |
 | **TASK-7.1** | Phase 7 | Management | History Repository & SQLite Storage | `[x]` |
-| **TASK-7.2** | Phase 7 | UI | History Viewer Window (Search, Inspect, Delete) | `[ ]` |
+| **TASK-7.2** | Phase 7 | UI | History Viewer Window (Search, Inspect, Delete) | `[x]` |
 | **TASK-7.3** | Phase 7 | UI | Settings Dialog (Preferences Configuration) | `[ ]` |
 | **TASK-7.4** | Phase 7 | Windows | Windows Startup (Run at Startup) Registry Helper | `[ ]` |
 | **TASK-8.1** | Phase 8 | Quality | Comprehensive Unit & Integration Test Suite | `[ ]` |
