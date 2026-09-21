@@ -18,6 +18,15 @@ from voice_agent.control.actions.base import (
     ActionValidationError,
     RiskLevel,
 )
+from voice_agent.control.actions.keyboard import (
+    HotkeyAction,
+    IKeyboardBackend,
+    NativeWin32KeyboardBackend,
+    PressKeyAction,
+    SimulatedKeyboardBackend,
+    TypeTextAction,
+    VK_MAP,
+)
 
 __all__ = [
     "Action",
@@ -29,11 +38,18 @@ __all__ = [
     "ActionValidationError",
     "CloseAppAction",
     "DEFAULT_APP_ALIASES",
+    "HotkeyAction",
+    "IKeyboardBackend",
     "IWindowBackend",
+    "NativeWin32KeyboardBackend",
     "NativeWin32WindowBackend",
     "OpenAppAction",
+    "PressKeyAction",
     "RiskLevel",
+    "SimulatedKeyboardBackend",
     "SimulatedWindowBackend",
     "SwitchWindowAction",
+    "TypeTextAction",
+    "VK_MAP",
     "WindowInfo",
 ]
