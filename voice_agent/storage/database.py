@@ -32,7 +32,8 @@ class DatabaseManager:
     def __init__(self, db_path: Path | None = None) -> None:
         self.db_path = db_path or get_default_db_path()
         self._local = threading.local()
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
+        self._all_connections: list[sqlite3.Connection] = []
         self.initialize()
 
     def _get_connection(self) -> sqlite3.Connection:
@@ -49,6 +50,8 @@ class DatabaseManager:
             conn.execute("PRAGMA journal_mode=WAL;")
             conn.execute("PRAGMA foreign_keys=ON;")
             self._local.conn = conn
+            with self._lock:
+                self._all_connections.append(conn)
         return self._local.conn
 
     @contextmanager
@@ -225,7 +228,13 @@ class DatabaseManager:
             return default
 
     def close(self) -> None:
-        """Close thread-local database connection if active."""
+        """Close all connections opened across threads."""
+        with self._lock:
+            for conn in list(self._all_connections):
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+            self._all_connections.clear()
         if hasattr(self._local, "conn") and self._local.conn is not None:
-            self._local.conn.close()
             self._local.conn = None

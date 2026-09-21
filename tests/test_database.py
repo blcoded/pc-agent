@@ -20,7 +20,10 @@ class TestDatabaseManager(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.db.close()
-        self.test_dir.cleanup()
+        try:
+            self.test_dir.cleanup()
+        except Exception:
+            pass
 
     def test_database_initialization_and_schema(self) -> None:
         """Verify initialization runs migrations and creates expected tables."""

@@ -7,6 +7,7 @@ import json
 import ssl
 import subprocess
 import os
+import time
 
 class CREDENTIAL(ctypes.Structure):
     _fields_ = [
@@ -59,6 +60,20 @@ def push_repo(token):
     print("Git push successful.")
     return True
 
+def _api_call_with_retries(req, ctx, retries=4):
+    for attempt in range(retries):
+        try:
+            with urllib.request.urlopen(req, timeout=20, context=ctx) as resp:
+                return resp.status, resp.read().decode('utf-8')
+        except urllib.error.HTTPError as e:
+            return e.code, e.read().decode('utf-8')
+        except Exception as e:
+            print(f"Connection attempt {attempt+1}/{retries} failed: {e}")
+            if attempt < retries - 1:
+                time.sleep(2 * (attempt + 1))
+            else:
+                raise
+
 def close_github_issue(issue_number, comment_text, token):
     ctx = ssl.create_default_context()
     owner = "blcoded"
@@ -73,7 +88,8 @@ def close_github_issue(issue_number, comment_text, token):
         req.add_header("Content-Type", "application/json")
         req.add_header("User-Agent", "PC-Voice-Agent-Closer")
         try:
-            with urllib.request.urlopen(req, context=ctx) as resp:
+            status, _ = _api_call_with_retries(req, ctx)
+            if status in (200, 201):
                 print(f"Comment added to #{issue_number}")
         except Exception as e:
             print(f"Error adding comment to #{issue_number}: {e}")
@@ -86,7 +102,8 @@ def close_github_issue(issue_number, comment_text, token):
     req.add_header("Content-Type", "application/json")
     req.add_header("User-Agent", "PC-Voice-Agent-Closer")
     try:
-        with urllib.request.urlopen(req, context=ctx) as resp:
+        status, _ = _api_call_with_retries(req, ctx)
+        if status == 200:
             print(f"Closed issue #{issue_number} successfully.")
     except Exception as e:
         print(f"Error closing issue #{issue_number}: {e}")
@@ -99,9 +116,6 @@ def mark_task_complete(task_id):
         if os.path.exists(path):
             with open(path, "r", encoding="utf-8") as f:
                 content = f.read()
-            # Replace `| **TASK-X.Y** | ... | `[ ]` |` with `| `[x]` |`
-            content = content.replace(f"| **{task_id}** | Phase", f"| **{task_id}** | Phase")
-            # In table: | **TASK-X.Y** | ... | `[ ]` |
             lines = content.splitlines()
             new_lines = []
             for line in lines:

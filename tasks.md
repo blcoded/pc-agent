@@ -67,11 +67,11 @@ voice_agent/
 
 | Task ID | Phase | Component | Title | Status |
 |---|---|---|---|---|
-| **TASK-1.1** | Phase 1 | Foundation | Project Environment & Dependency Setup | `[ ]` |
-| **TASK-1.2** | Phase 1 | Foundation | Configuration System (TOML & Models) | `[ ]` |
-| **TASK-1.3** | Phase 1 | Foundation | Application Logging & Diagnostic Subsystem | `[ ]` |
-| **TASK-1.4** | Phase 1 | Foundation | SQLite Database & Schema Migration Engine | `[ ]` |
-| **TASK-1.5** | Phase 1 | Foundation | PySide6 Application Skeleton & Lifecycle | `[ ]` |
+| **TASK-1.1** | Phase 1 | Foundation | Project Environment & Dependency Setup | `[x]` |
+| **TASK-1.2** | Phase 1 | Foundation | Configuration System (TOML & Models) | `[x]` |
+| **TASK-1.3** | Phase 1 | Foundation | Application Logging & Diagnostic Subsystem | `[x]` |
+| **TASK-1.4** | Phase 1 | Foundation | SQLite Database & Schema Migration Engine | `[x]` |
+| **TASK-1.5** | Phase 1 | Foundation | PySide6 Application Skeleton & Lifecycle | `[x]` |
 | **TASK-2.1** | Phase 2 | Audio / STT | Microphone Enumerator & Fallback Handler | `[ ]` |
 | **TASK-2.2** | Phase 2 | Audio / STT | Ring-Buffered Audio Capture Recorder | `[ ]` |
 | **TASK-2.3** | Phase 2 | Audio / STT | Abstract STT Engine Interface & Model Manager | `[ ]` |
