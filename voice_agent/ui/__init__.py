@@ -7,6 +7,10 @@ from voice_agent.ui.overlay import (
     FloatingStatusOverlay,
     VisualStateStyle,
 )
+from voice_agent.ui.confirmation import (
+    RiskConfirmationDialog,
+    request_user_confirmation,
+)
 from voice_agent.ui.tray import (
     SystemTrayManager,
     create_default_tray_icon,
@@ -20,4 +24,6 @@ __all__ = [
     "STATE_STYLES",
     "SystemTrayManager",
     "create_default_tray_icon",
+    "RiskConfirmationDialog",
+    "request_user_confirmation",
 ]
