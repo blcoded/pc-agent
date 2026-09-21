@@ -72,7 +72,7 @@ voice_agent/
 | **TASK-1.3** | Phase 1 | Foundation | Application Logging & Diagnostic Subsystem | `[x]` |
 | **TASK-1.4** | Phase 1 | Foundation | SQLite Database & Schema Migration Engine | `[x]` |
 | **TASK-1.5** | Phase 1 | Foundation | PySide6 Application Skeleton & Lifecycle | `[x]` |
-| **TASK-2.1** | Phase 2 | Audio / STT | Microphone Enumerator & Fallback Handler | `[ ]` |
+| **TASK-2.1** | Phase 2 | Audio / STT | Microphone Enumerator & Fallback Handler | `[x]` |
 | **TASK-2.2** | Phase 2 | Audio / STT | Ring-Buffered Audio Capture Recorder | `[ ]` |
 | **TASK-2.3** | Phase 2 | Audio / STT | Abstract STT Engine Interface & Model Manager | `[ ]` |
 | **TASK-2.4** | Phase 2 | Audio / STT | faster-whisper Local Engine Implementation | `[ ]` |
