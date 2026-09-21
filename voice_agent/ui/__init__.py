@@ -7,6 +7,10 @@ from voice_agent.ui.overlay import (
     FloatingStatusOverlay,
     VisualStateStyle,
 )
+from voice_agent.ui.tray import (
+    SystemTrayManager,
+    create_default_tray_icon,
+)
 
 __all__ = [
     "FloatingStatusOverlay",
@@ -14,4 +18,6 @@ __all__ = [
     "OVERLAY_WIDTH",
     "OVERLAY_HEIGHT",
     "STATE_STYLES",
+    "SystemTrayManager",
+    "create_default_tray_icon",
 ]

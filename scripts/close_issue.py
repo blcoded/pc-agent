@@ -49,16 +49,19 @@ def get_github_token():
 
     return token.strip('\x00').strip()
 
-def push_repo(token):
+def push_repo(token, retries=3):
     cwd = r"C:\Users\Free user\Documents\AI Dev tools\pc-voice-agent"
     push_url = f"https://x-access-token:{token}@github.com/blcoded/pc-agent.git"
     cmd = ["git", "-c", "credential.helper=", "push", push_url, "main"]
-    res = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=60)
-    if res.returncode != 0:
-        print("Push error:", res.stderr)
-        return False
-    print("Git push successful.")
-    return True
+    for attempt in range(retries):
+        res = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=60)
+        if res.returncode == 0:
+            print("Git push successful.")
+            return True
+        print(f"Push attempt {attempt+1}/{retries} error: {res.stderr.strip()}")
+        if attempt < retries - 1:
+            time.sleep(3 * (attempt + 1))
+    return False
 
 def _api_call_with_retries(req, ctx, retries=4):
     for attempt in range(retries):
