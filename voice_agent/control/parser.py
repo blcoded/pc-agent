@@ -152,7 +152,7 @@ class CommandParser:
         text_lower = clean_text.lower()
 
         # 1. Clipboard operations
-        if text_lower in ("copy", "copy this", "copy selection"):
+        if text_lower in ("copy", "copy this", "copy that", "copy selection"):
             return ActionRequest(
                 action_type=ActionType.COPY,
                 params={},
@@ -160,7 +160,7 @@ class CommandParser:
                 raw_command=clean_text,
             )
 
-        if text_lower in ("paste", "paste this", "paste clipboard"):
+        if text_lower in ("paste", "paste this", "paste that", "paste clipboard"):
             return ActionRequest(
                 action_type=ActionType.PASTE,
                 params={},
