@@ -27,6 +27,14 @@ from voice_agent.control.actions.keyboard import (
     TypeTextAction,
     VK_MAP,
 )
+from voice_agent.control.actions.mouse import (
+    ClickAction,
+    IMouseBackend,
+    MouseClickEvent,
+    MoveMouseAction,
+    NativeWin32MouseBackend,
+    SimulatedMouseBackend,
+)
 
 __all__ = [
     "Action",
@@ -36,17 +44,23 @@ __all__ = [
     "ActionResult",
     "ActionType",
     "ActionValidationError",
+    "ClickAction",
     "CloseAppAction",
     "DEFAULT_APP_ALIASES",
     "HotkeyAction",
     "IKeyboardBackend",
+    "IMouseBackend",
     "IWindowBackend",
+    "MouseClickEvent",
+    "MoveMouseAction",
     "NativeWin32KeyboardBackend",
+    "NativeWin32MouseBackend",
     "NativeWin32WindowBackend",
     "OpenAppAction",
     "PressKeyAction",
     "RiskLevel",
     "SimulatedKeyboardBackend",
+    "SimulatedMouseBackend",
     "SimulatedWindowBackend",
     "SwitchWindowAction",
     "TypeTextAction",
