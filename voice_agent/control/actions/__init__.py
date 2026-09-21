@@ -1,5 +1,13 @@
-"""Actions package for PC Voice Agent control core."""
-
+from voice_agent.control.actions.applications import (
+    CloseAppAction,
+    DEFAULT_APP_ALIASES,
+    IWindowBackend,
+    NativeWin32WindowBackend,
+    OpenAppAction,
+    SimulatedWindowBackend,
+    SwitchWindowAction,
+    WindowInfo,
+)
 from voice_agent.control.actions.base import (
     Action,
     ActionError,
@@ -19,5 +27,13 @@ __all__ = [
     "ActionResult",
     "ActionType",
     "ActionValidationError",
+    "CloseAppAction",
+    "DEFAULT_APP_ALIASES",
+    "IWindowBackend",
+    "NativeWin32WindowBackend",
+    "OpenAppAction",
     "RiskLevel",
+    "SimulatedWindowBackend",
+    "SwitchWindowAction",
+    "WindowInfo",
 ]
