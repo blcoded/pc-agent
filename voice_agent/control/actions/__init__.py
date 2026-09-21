@@ -18,6 +18,11 @@ from voice_agent.control.actions.base import (
     ActionValidationError,
     RiskLevel,
 )
+from voice_agent.control.actions.browser import (
+    OpenUrlAction,
+    SEARCH_PROVIDERS,
+    SearchWebAction,
+)
 from voice_agent.control.actions.keyboard import (
     HotkeyAction,
     IKeyboardBackend,
@@ -57,8 +62,11 @@ __all__ = [
     "NativeWin32MouseBackend",
     "NativeWin32WindowBackend",
     "OpenAppAction",
+    "OpenUrlAction",
     "PressKeyAction",
     "RiskLevel",
+    "SEARCH_PROVIDERS",
+    "SearchWebAction",
     "SimulatedKeyboardBackend",
     "SimulatedMouseBackend",
     "SimulatedWindowBackend",
