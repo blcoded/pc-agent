@@ -76,7 +76,7 @@ voice_agent/
 | **TASK-2.2** | Phase 2 | Audio / STT | Ring-Buffered Audio Capture Recorder | `[x]` |
 | **TASK-2.3** | Phase 2 | Audio / STT | Abstract STT Engine Interface & Model Manager | `[x]` |
 | **TASK-2.4** | Phase 2 | Audio / STT | faster-whisper Local Engine Implementation | `[x]` |
-| **TASK-3.1** | Phase 3 | Input | Global Hotkey Hook & Tap vs. Hold Engine | `[ ]` |
+| **TASK-3.1** | Phase 3 | Input | Global Hotkey Hook & Tap vs. Hold Engine | `[x]` |
 | **TASK-3.2** | Phase 3 | Dictation | Win32 Clipboard Manager (Format Preservation) | `[ ]` |
 | **TASK-3.3** | Phase 3 | Dictation | Text Normalizer & Linguistic Cleaner | `[ ]` |
 | **TASK-3.4** | Phase 3 | Dictation | Dictation Formatting Command Parser | `[ ]` |
