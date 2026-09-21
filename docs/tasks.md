@@ -94,7 +94,7 @@ voice_agent/
 | **TASK-6.3** | Phase 6 | Actions | Mouse Movement & Click Actions | `[x]` |
 | **TASK-6.4** | Phase 6 | Actions | Browser & Web Search Actions | `[x]` |
 | **TASK-6.5** | Phase 6 | Actions | File & Folder System Actions | `[x]` |
-| **TASK-6.6** | Phase 6 | Actions | Clipboard Control Actions | `[ ]` |
+| **TASK-6.6** | Phase 6 | Actions | Clipboard Control Actions | `[x]` |
 | **TASK-6.7** | Phase 6 | Control Core| Multi-Step Command Router & Execution Pipeline | `[ ]` |
 | **TASK-7.1** | Phase 7 | Management | History Repository & SQLite Storage | `[ ]` |
 | **TASK-7.2** | Phase 7 | UI | History Viewer Window (Search, Inspect, Delete) | `[ ]` |

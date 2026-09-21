@@ -23,6 +23,11 @@ from voice_agent.control.actions.browser import (
     SEARCH_PROVIDERS,
     SearchWebAction,
 )
+from voice_agent.control.actions.clipboard import (
+    CopyAction,
+    PasteAction,
+    ReadClipboardAction,
+)
 from voice_agent.control.actions.files import (
     DeleteFileAction,
     MoveFileAction,
@@ -58,6 +63,7 @@ __all__ = [
     "ActionValidationError",
     "ClickAction",
     "CloseAppAction",
+    "CopyAction",
     "DEFAULT_APP_ALIASES",
     "DeleteFileAction",
     "HotkeyAction",
@@ -74,7 +80,9 @@ __all__ = [
     "OpenFileAction",
     "OpenFolderAction",
     "OpenUrlAction",
+    "PasteAction",
     "PressKeyAction",
+    "ReadClipboardAction",
     "RenameFileAction",
     "RiskLevel",
     "SEARCH_PROVIDERS",
