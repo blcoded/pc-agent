@@ -85,7 +85,7 @@ voice_agent/
 | **TASK-4.1** | Phase 4 | UI | Floating Status Overlay Widget | `[x]` |
 | **TASK-4.2** | Phase 4 | UI | Windows System Tray Integration | `[x]` |
 | **TASK-5.1** | Phase 5 | Control Core| Structured Action Request Models & Base Action | `[x]` |
-| **TASK-5.2** | Phase 5 | Control Core| Local Rule-Based Command Parser | `[ ]` |
+| **TASK-5.2** | Phase 5 | Control Core| Local Rule-Based Command Parser | `[x]` |
 | **TASK-5.3** | Phase 5 | Control Core| Action Parameter & Path Validator | `[ ]` |
 | **TASK-5.4** | Phase 5 | Control Core| Risk Classification Engine | `[ ]` |
 | **TASK-5.5** | Phase 5 | Control Core| Risk Confirmation Modal Dialog | `[ ]` |

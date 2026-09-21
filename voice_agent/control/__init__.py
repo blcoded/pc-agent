@@ -10,6 +10,7 @@ from voice_agent.control.actions.base import (
     ActionValidationError,
     RiskLevel,
 )
+from voice_agent.control.parser import CommandParser, UnsupportedCommandResult
 
 __all__ = [
     "Action",
@@ -19,5 +20,7 @@ __all__ = [
     "ActionResult",
     "ActionType",
     "ActionValidationError",
+    "CommandParser",
     "RiskLevel",
+    "UnsupportedCommandResult",
 ]
