@@ -81,7 +81,7 @@ voice_agent/
 | **TASK-3.3** | Phase 3 | Dictation | Text Normalizer & Linguistic Cleaner | `[x]` |
 | **TASK-3.4** | Phase 3 | Dictation | Dictation Formatting Command Parser | `[x]` |
 | **TASK-3.5** | Phase 3 | Dictation | Hybrid Text Inserter & Fallback Notifier | `[x]` |
-| **TASK-3.6** | Phase 3 | Dictation | Dictation Pipeline Coordinator & State Machine | `[ ]` |
+| **TASK-3.6** | Phase 3 | Dictation | Dictation Pipeline Coordinator & State Machine | `[x]` |
 | **TASK-4.1** | Phase 4 | UI | Floating Status Overlay Widget | `[ ]` |
 | **TASK-4.2** | Phase 4 | UI | Windows System Tray Integration | `[ ]` |
 | **TASK-5.1** | Phase 5 | Control Core| Structured Action Request Models & Base Action | `[ ]` |

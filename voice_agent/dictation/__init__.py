@@ -7,6 +7,7 @@ from voice_agent.dictation.inserter import (
     TextInserter,
 )
 from voice_agent.dictation.normalizer import TextNormalizer
+from voice_agent.dictation.processor import DictationProcessor
 
 __all__ = [
     "TextNormalizer",
@@ -14,4 +15,5 @@ __all__ = [
     "TextInserter",
     "InsertionResult",
     "InsertionStatus",
+    "DictationProcessor",
 ]
