@@ -103,7 +103,7 @@ voice_agent/
 | **TASK-8.1** | Phase 8 | Quality | Comprehensive Unit & Integration Test Suite | `[x]` |
 | **TASK-8.2** | Phase 8 | Quality | End-to-End Pipeline & Stress Testing | `[x]` |
 | **TASK-8.3** | Phase 8 | Distribution| PyInstaller Executable Build Pipeline | `[x]` |
-| **TASK-8.4** | Phase 8 | Distribution| Inno Setup Windows Installer Script | `[ ]` |
+| **TASK-8.4** | Phase 8 | Distribution| Inno Setup Windows Installer Script | `[x]` |
 
 ---
 
