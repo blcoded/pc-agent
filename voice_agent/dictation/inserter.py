@@ -51,19 +51,42 @@ class InsertionResult:
     target_title: str = ""
 
 
-# CTypes structures for SendInput
+# CTypes structures for SendInput (correct 40-byte layout on 64-bit Windows)
+class MOUSEINPUT(ctypes.Structure):
+    _fields_ = [
+        ("dx", ctypes.c_long),
+        ("dy", ctypes.c_long),
+        ("mouseData", ctypes.c_ulong),
+        ("dwFlags", ctypes.c_ulong),
+        ("time", ctypes.c_ulong),
+        ("dwExtraInfo", ctypes.c_size_t),
+    ]
+
+
 class KEYBDINPUT(ctypes.Structure):
     _fields_ = [
         ("wVk", ctypes.c_ushort),
         ("wScan", ctypes.c_ushort),
         ("dwFlags", ctypes.c_ulong),
         ("time", ctypes.c_ulong),
-        ("dwExtraInfo", ctypes.POINTER(ctypes.c_ulong)),
+        ("dwExtraInfo", ctypes.c_size_t),
+    ]
+
+
+class HARDWAREINPUT(ctypes.Structure):
+    _fields_ = [
+        ("uMsg", ctypes.c_ulong),
+        ("wParamL", ctypes.c_ushort),
+        ("wParamH", ctypes.c_ushort),
     ]
 
 
 class INPUT_UNION(ctypes.Union):
-    _fields_ = [("ki", KEYBDINPUT)]
+    _fields_ = [
+        ("mi", MOUSEINPUT),
+        ("ki", KEYBDINPUT),
+        ("hi", HARDWAREINPUT),
+    ]
 
 
 class INPUT(ctypes.Structure):
@@ -99,40 +122,53 @@ def default_get_foreground_window() -> tuple[int, str, str]:
 
 
 def default_send_paste() -> bool:
-    """Synthesize Ctrl+V using native Windows SendInput API."""
+    """Synthesize Ctrl+V using native Windows keybd_event, SendInput, or pynput."""
     if sys.platform != "win32":
         return True
 
+    # Primary method: Windows keybd_event (direct, reliable across all Windows architectures)
     try:
         user32 = ctypes.windll.user32  # type: ignore[attr-defined]
+        user32.keybd_event(VK_CONTROL, 0, 0, 0)
+        user32.keybd_event(VK_V, 0, 0, 0)
+        user32.keybd_event(VK_V, 0, KEYEVENTF_KEYUP, 0)
+        user32.keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0)
+        return True
+    except Exception as e:
+        logger.debug("keybd_event Ctrl+V failed (%s), trying SendInput...", e)
 
-        # 4 keyboard input events: Ctrl down, V down, V up, Ctrl up
+    # Secondary method: SendInput with 40-byte aligned struct
+    try:
+        user32 = ctypes.windll.user32  # type: ignore[attr-defined]
         inputs = (INPUT * 4)()
+        for i in range(4):
+            inputs[i].type = INPUT_KEYBOARD
 
-        # 1. Ctrl down
-        inputs[0].type = INPUT_KEYBOARD
         inputs[0].u.ki.wVk = VK_CONTROL
         inputs[0].u.ki.dwFlags = 0
-
-        # 2. V down
-        inputs[1].type = INPUT_KEYBOARD
         inputs[1].u.ki.wVk = VK_V
         inputs[1].u.ki.dwFlags = 0
-
-        # 3. V up
-        inputs[2].type = INPUT_KEYBOARD
         inputs[2].u.ki.wVk = VK_V
         inputs[2].u.ki.dwFlags = KEYEVENTF_KEYUP
-
-        # 4. Ctrl up
-        inputs[3].type = INPUT_KEYBOARD
         inputs[3].u.ki.wVk = VK_CONTROL
         inputs[3].u.ki.dwFlags = KEYEVENTF_KEYUP
 
         sent = user32.SendInput(4, ctypes.byref(inputs), ctypes.sizeof(INPUT))
-        return sent == 4
+        if sent == 4:
+            return True
     except Exception as e:
-        logger.error("Error executing SendInput Ctrl+V: %s", e)
+        logger.debug("SendInput Ctrl+V failed (%s), trying pynput...", e)
+
+    # Tertiary method: pynput keyboard controller
+    try:
+        from pynput.keyboard import Controller, Key
+
+        kb = Controller()
+        with kb.pressed(Key.ctrl):
+            kb.tap("v")
+        return True
+    except Exception as e:
+        logger.error("All paste synthesis methods failed: %s", e)
         return False
 
 
@@ -220,14 +256,14 @@ class TextInserter:
                 target_title=title,
             )
 
-        # Short pause to ensure clipboard update is registered
-        time.sleep(0.015)
+        # Short pause to ensure clipboard update is registered by Windows
+        time.sleep(0.025)
 
         # Synthesize Ctrl+V paste
         pasted = self._send_paste()
 
         # Wait for target app to consume clipboard contents before restoring
-        time.sleep(0.040)
+        time.sleep(0.080)
 
         # Restore previous clipboard
         self.clipboard.restore_snapshot(snapshot)
