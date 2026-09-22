@@ -1,6 +1,12 @@
-"""Unit tests for FloatingStatusOverlay widget and visual state representation."""
-
+import os
 import unittest
+
+os.environ["QT_QPA_PLATFORM"] = "offscreen"
+try:
+    from PySide6.QtWidgets import QApplication
+    app = QApplication.instance() or QApplication([])
+except ImportError:
+    app = None
 
 from voice_agent.app.config import AppConfig
 from voice_agent.app.lifecycle import ControlState, DictationState

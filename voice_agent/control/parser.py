@@ -145,7 +145,7 @@ class CommandParser:
         Returns:
             ActionRequest if recognized, or UnsupportedCommandResult if unsupported.
         """
-        clean_text = cmd_text.strip()
+        clean_text = cmd_text.strip().rstrip(".!?,;:")
         if not clean_text:
             return UnsupportedCommandResult(raw_command="", reason="Empty command")
 
@@ -397,7 +397,7 @@ class CommandParser:
         # Open / launch app: "open notepad", "launch chrome", "start spotify"
         m_open = re.match(r"^(?:open|launch|start)\s+(?:app|application|program)?\s*(.+)$", clean_text, re.IGNORECASE)
         if m_open:
-            app_name = m_open.group(1).strip()
+            app_name = m_open.group(1).strip().rstrip(".!?,;:\"'")
             return ActionRequest(
                 action_type=ActionType.OPEN_APP,
                 params={"app_name": app_name},

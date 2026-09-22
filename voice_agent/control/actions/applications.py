@@ -219,6 +219,9 @@ class OpenAppAction(Action):
 
     def _resolve_application(self, target_binary: str, app_lower: str) -> str | None:
         """Resolve target application to an executable or shortcut path on the system."""
+        target_binary = target_binary.strip().rstrip(".!?,;:\"'")
+        app_lower = app_lower.strip().rstrip(".!?,;:\"'")
+
         # 1. Absolute path check
         if os.path.isabs(target_binary) and os.path.exists(target_binary):
             return target_binary
@@ -280,7 +283,7 @@ class OpenAppAction(Action):
         return None
 
     def execute(self, params: dict[str, Any]) -> ActionResult:
-        app_name = params["app_name"].strip()
+        app_name = params["app_name"].strip().rstrip(".!?,;:\"'")
         app_lower = app_name.lower()
 
         # Resolve alias if present

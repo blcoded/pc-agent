@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import sys
+import time
 from typing import Any, Callable
 
 from voice_agent.app.config import AppConfig, load_config, save_config
@@ -16,7 +17,7 @@ OVERLAY_WIDTH = 220
 OVERLAY_HEIGHT = 48
 
 try:
-    from PySide6.QtCore import QPoint, QRect, Qt, QTimer
+    from PySide6.QtCore import QPoint, QRect, Qt, QTimer, Signal
     from PySide6.QtGui import QColor, QFont, QMouseEvent, QPainter, QPaintEvent
     from PySide6.QtWidgets import QApplication, QLabel, QProgressBar, QVBoxLayout, QWidget
     HAS_PYSIDE = True
@@ -101,6 +102,12 @@ else:
 class FloatingStatusOverlay(_BaseWidget):
     """Floating transparent pill widget displaying mode, state, and audio activity."""
 
+    if HAS_PYSIDE:
+        sig_set_dictation_state = Signal(object)
+        sig_set_control_state = Signal(object)
+        sig_set_audio_level = Signal(float)
+        sig_reset = Signal()
+
     def __init__(
         self,
         config: AppConfig | None = None,
@@ -113,12 +120,27 @@ class FloatingStatusOverlay(_BaseWidget):
         self.current_state_key: str = "dictation_ready"
         self.status_text: str = "Ready"
         self.audio_level: float = 0.0
+        self._last_level_time: float = 0.0
 
         self._drag_pos: Any = None
         self._is_dragging: bool = False
 
         self._init_ui()
         self._restore_position()
+
+        if HAS_PYSIDE:
+            self.sig_set_dictation_state.connect(self._on_dictation_state)
+            self.sig_set_control_state.connect(self._on_control_state)
+            self.sig_set_audio_level.connect(self._on_audio_level)
+            self.sig_reset.connect(self._on_reset)
+
+            # Auto-reset timer to revert to "Ready" after transient results/errors
+            if QApplication.instance():
+                self._auto_reset_timer = QTimer(self)
+                self._auto_reset_timer.setSingleShot(True)
+                self._auto_reset_timer.timeout.connect(self._on_reset)
+            else:
+                self._auto_reset_timer = None
 
     def _init_ui(self) -> None:
         self.setFixedSize(OVERLAY_WIDTH, OVERLAY_HEIGHT)
@@ -152,28 +174,72 @@ class FloatingStatusOverlay(_BaseWidget):
             self.move(default_x, default_y)
 
     def set_dictation_state(self, state: DictationState | str) -> None:
-        """Update overlay visual state for Dictation mode."""
+        """Update overlay visual state for Dictation mode (thread-safe)."""
+        if HAS_PYSIDE:
+            self.sig_set_dictation_state.emit(state)
+        else:
+            self._on_dictation_state(state)
+
+    def set_control_state(self, state: ControlState | str) -> None:
+        """Update overlay visual state for Control mode (thread-safe)."""
+        if HAS_PYSIDE:
+            self.sig_set_control_state.emit(state)
+        else:
+            self._on_control_state(state)
+
+    def set_audio_level(self, level: float) -> None:
+        """Update volume meter level between 0.0 and 1.0 (thread-safe, throttled)."""
+        clamped = max(0.0, min(1.0, level))
+        self.audio_level = clamped
+
+        now = time.perf_counter()
+        if now - self._last_level_time < 0.033:  # Max 30 FPS repaint
+            return
+        self._last_level_time = now
+
+        if HAS_PYSIDE:
+            self.sig_set_audio_level.emit(clamped)
+        else:
+            self.update()
+
+    def _on_dictation_state(self, state: DictationState | str) -> None:
+        timer = getattr(self, "_auto_reset_timer", None)
+        if timer and timer.isActive():
+            timer.stop()
         self.current_mode = "dictation"
         state_val = state.value if isinstance(state, DictationState) else str(state).lower()
         key = f"dictation_{state_val}"
         self._apply_state(key)
 
-    def set_control_state(self, state: ControlState | str) -> None:
-        """Update overlay visual state for Control mode."""
+        if state_val in ("typing", "no_target", "error") and timer:
+            timer.start(2000)
+
+    def _on_control_state(self, state: ControlState | str) -> None:
+        timer = getattr(self, "_auto_reset_timer", None)
+        if timer and timer.isActive():
+            timer.stop()
         self.current_mode = "control"
         state_val = state.value if isinstance(state, ControlState) else str(state).lower()
         key = f"control_{state_val}"
         self._apply_state(key)
 
+        if state_val in ("result", "error", "ready") and timer:
+            timer.start(2000)
+
+    def _on_audio_level(self, level: float) -> None:
+        self.audio_level = level
+        self.update()
+
+    def _on_reset(self) -> None:
+        self.current_mode = "dictation"
+        self._apply_state("dictation_ready")
+
     def _apply_state(self, state_key: str) -> None:
         style = STATE_STYLES.get(state_key, STATE_STYLES["dictation_ready"])
         self.current_state_key = state_key
         self.status_text = style.label
-        self.update()
-
-    def set_audio_level(self, level: float) -> None:
-        """Update volume meter level between 0.0 and 1.0."""
-        self.audio_level = max(0.0, min(1.0, level))
+        if "listening" not in state_key:
+            self.audio_level = 0.0
         self.update()
 
     def mousePressEvent(self, event: Any) -> None:

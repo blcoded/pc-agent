@@ -104,7 +104,7 @@ class ActionValidator:
         if not app_name or not isinstance(app_name, str):
             raise ActionValidationError("Application name must be a non-empty string.")
 
-        clean_name = app_name.strip()
+        clean_name = app_name.strip().rstrip(".!?,;:\"'")
         if not clean_name:
             raise ActionValidationError("Application name cannot be blank.")
 

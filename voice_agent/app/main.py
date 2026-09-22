@@ -265,6 +265,10 @@ def main() -> int:
         def handle_control_start() -> None:
             if tray.is_paused:
                 return
+            if hotkey_manager.dictation_detector.is_active:
+                logger.info("Control started while Dictation was active; resetting Dictation detector.")
+                hotkey_manager.dictation_detector.reset()
+            lifecycle.set_dictation_state(DictationState.READY)
             logger.info("Control hotkey triggered: starting audio capture (device_id=%s)...", active_device_id)
             lifecycle.set_control_state(ControlState.LISTENING)
             try:
@@ -314,7 +318,7 @@ def main() -> int:
                         return
 
                     raw_text = stt_engine.transcribe(audio_data, language="en")
-                    clean_text = raw_text.strip()
+                    clean_text = raw_text.strip().rstrip(".!?,;:")
                     if not clean_text:
                         logger.info("No speech recognized for control command.")
                         lifecycle.set_control_state(ControlState.READY)
@@ -362,6 +366,10 @@ def main() -> int:
         def handle_dictation_start() -> None:
             if tray.is_paused:
                 return
+            if hotkey_manager.control_detector.is_active:
+                logger.info("Dictation started while Control was active; resetting Control detector.")
+                hotkey_manager.control_detector.reset()
+            lifecycle.set_control_state(ControlState.READY)
             logger.info("Dictation hotkey triggered: starting audio capture (device_id=%s)...", active_device_id)
             dictation_processor.start_listening(device_id=active_device_id)
 
@@ -383,6 +391,17 @@ def main() -> int:
             on_control_stop=handle_control_stop,
         )
         hotkey_manager.start()
+
+        def handle_max_duration() -> None:
+            logger.warning("Max audio recording duration reached (60s). Finalizing active capture.")
+            if hotkey_manager.control_detector.is_active:
+                hotkey_manager.control_detector.reset()
+                handle_control_stop()
+            elif dictation_processor.is_listening:
+                hotkey_manager.dictation_detector.reset()
+                dictation_processor.stop_listening()
+
+        recorder.on_max_duration = handle_max_duration
 
         # Register clean shutdown hooks
         lifecycle.add_shutdown_hook(hotkey_manager.stop)
