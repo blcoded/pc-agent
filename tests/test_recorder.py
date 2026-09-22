@@ -195,6 +195,22 @@ class TestAudioRecorder(unittest.TestCase):
         self.assertFalse(self.recorder.is_recording)
         self.assertEqual(len(self.recorder.stop_recording()), 0)
 
+    def test_set_max_duration(self) -> None:
+        """Verify dynamic updating of max_duration and clamping."""
+        self.recorder.set_max_duration(90.0)
+        self.assertEqual(self.recorder.max_duration, 90.0)
+        self.assertEqual(self.recorder._max_samples, int(90.0 * 16000))
+
+        # Test upper cap at 150.0
+        self.recorder.set_max_duration(300.0)
+        self.assertEqual(self.recorder.max_duration, 150.0)
+        self.assertEqual(self.recorder._max_samples, int(150.0 * 16000))
+
+        # Test lower bound clamping to min_duration
+        self.recorder.set_max_duration(0.01)
+        self.assertEqual(self.recorder.max_duration, self.recorder.min_duration)
+
 
 if __name__ == "__main__":
     unittest.main()
+

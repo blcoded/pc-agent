@@ -210,3 +210,15 @@ class AudioRecorder:
                 self._stream = None
             self._chunks.clear()
             self._total_samples = 0
+
+    def set_max_duration(self, seconds: float) -> None:
+        """Update max recording duration, clamped to [min_duration, 150.0] seconds."""
+        with self._lock:
+            self.max_duration = max(self.min_duration, min(150.0, float(seconds)))
+            self._max_samples = int(self.max_duration * self.sample_rate)
+            logger.info(
+                "Updated AudioRecorder max_duration to %.1fs (%d samples)",
+                self.max_duration,
+                self._max_samples,
+            )
+

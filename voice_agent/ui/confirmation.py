@@ -75,6 +75,10 @@ else:
 class RiskConfirmationDialog(_BaseDialog):
     """Modal confirmation dialog for medium and high-risk control actions."""
 
+    Accepted = 1
+    Rejected = 0
+
+
     def __init__(
         self,
         action: ActionRequest,

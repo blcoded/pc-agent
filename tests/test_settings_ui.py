@@ -2,10 +2,18 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import MagicMock
+
+os.environ["QT_QPA_PLATFORM"] = "offscreen"
+try:
+    from PySide6.QtWidgets import QApplication
+    app = QApplication.instance() or QApplication([])
+except ImportError:
+    app = None
 
 from voice_agent.app.config import (
     AppConfig,
@@ -112,7 +120,9 @@ class TestSettingsDialog(unittest.TestCase):
         self.assertTrue(dialog.confirm_high)
 
         self.assertIsNone(dialog.microphone)
+        self.assertEqual(dialog.max_duration, 60)
         self.assertEqual(len(dialog.available_microphones), 2)
+
 
         self.assertFalse(dialog.run_at_startup)
         self.assertTrue(dialog.minimize_to_tray)
@@ -147,6 +157,7 @@ class TestSettingsDialog(unittest.TestCase):
         dialog.confirm_medium = True
 
         dialog.microphone = "USB Array Mic"
+        dialog.max_duration = 120
 
         dialog.run_at_startup = True
         dialog.minimize_to_tray = False
@@ -173,11 +184,13 @@ class TestSettingsDialog(unittest.TestCase):
         self.assertTrue(disk_cfg.control.confirm_medium)
 
         self.assertEqual(disk_cfg.audio.microphone, "USB Array Mic")
+        self.assertEqual(disk_cfg.audio.max_duration, 120)
 
         self.assertTrue(disk_cfg.general.run_at_startup)
         self.assertFalse(disk_cfg.general.minimize_to_tray)
         self.assertEqual(disk_cfg.storage.history_retention_days, 60)
         self.assertFalse(disk_cfg.ui.overlay_enabled)
+
 
     def test_save_applies_and_accepts(self) -> None:
         """Save action commits changes and accepts dialog."""
@@ -239,6 +252,30 @@ class TestSettingsDialog(unittest.TestCase):
         self.assertEqual(disk_cfg.ui.overlay_x, -1)
         self.assertEqual(disk_cfg.ui.overlay_y, -1)
 
+    def test_max_duration_setting_cap(self) -> None:
+        """Verify max duration setting is capped at 150 seconds."""
+        dialog = SettingsDialog(
+            config_path=self.config_path,
+            mic_manager=self.mock_mic_manager,
+        )
+        self.assertEqual(dialog.max_duration, 60)
+
+        # Attempt to set to 250s -> should be clamped to 150s
+        dialog.max_duration = 250
+        self.assertEqual(dialog.max_duration, 150)
+
+        cfg = dialog.apply()
+        self.assertEqual(cfg.audio.max_duration, 150)
+        disk_cfg = load_config(self.config_path)
+        self.assertEqual(disk_cfg.audio.max_duration, 150)
+
+        # Attempt to set below 10s -> clamped to 10s
+        dialog.max_duration = 5
+        self.assertEqual(dialog.max_duration, 10)
+        cfg2 = dialog.apply()
+        self.assertEqual(cfg2.audio.max_duration, 10)
+
 
 if __name__ == "__main__":
     unittest.main()
+

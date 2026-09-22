@@ -44,6 +44,14 @@ class AudioConfig:
     microphone: str | None = None  # None indicates system default microphone
     sample_rate: int = 16000
     channels: int = 1
+    max_duration: int = 60  # seconds, clamped between 10 and 150
+
+    def __post_init__(self) -> None:
+        try:
+            self.max_duration = max(10, min(150, int(self.max_duration)))
+        except (ValueError, TypeError):
+            self.max_duration = 60
+
 
 
 @dataclass

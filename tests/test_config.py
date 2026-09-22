@@ -47,6 +47,8 @@ class TestConfig(unittest.TestCase):
 
         self.assertIsNone(cfg.audio.microphone)
         self.assertEqual(cfg.audio.sample_rate, 16000)
+        self.assertEqual(cfg.audio.max_duration, 60)
+
 
         self.assertTrue(cfg.ui.overlay_enabled)
         self.assertEqual(cfg.ui.overlay_x, -1)
@@ -63,6 +65,7 @@ class TestConfig(unittest.TestCase):
         cfg.control.confirm_medium = True
         cfg.ui.overlay_x = 500
         cfg.ui.overlay_y = 600
+        cfg.audio.max_duration = 120
         cfg.general.run_at_startup = True
 
         save_config(cfg, self.config_path)
@@ -74,6 +77,7 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(loaded.control.confirm_medium)
         self.assertEqual(loaded.ui.overlay_x, 500)
         self.assertEqual(loaded.ui.overlay_y, 600)
+        self.assertEqual(loaded.audio.max_duration, 120)
         self.assertTrue(loaded.general.run_at_startup)
 
     def test_load_non_existent_creates_default(self) -> None:
@@ -103,6 +107,29 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(cfg.dictation.model, "base")
         self.assertEqual(cfg.control.hotkey, "alt_r")
 
+    def test_max_duration_clamping(self) -> None:
+        """Verify max_duration is clamped between 10s and 150s."""
+        # Value above 150 clamped to 150
+        audio_high = AudioConfig(max_duration=200)
+        self.assertEqual(audio_high.max_duration, 150)
+
+        # Value below 10 clamped to 10
+        audio_low = AudioConfig(max_duration=3)
+        self.assertEqual(audio_low.max_duration, 10)
+
+        # TOML loading with high value clamped to 150
+        with open(self.config_path, "w", encoding="utf-8") as f:
+            f.write('[audio]\nmax_duration = 300\n')
+        cfg_loaded = load_config(self.config_path)
+        self.assertEqual(cfg_loaded.audio.max_duration, 150)
+
+        # TOML loading with low value clamped to 10
+        with open(self.config_path, "w", encoding="utf-8") as f:
+            f.write('[audio]\nmax_duration = 2\n')
+        cfg_loaded_low = load_config(self.config_path)
+        self.assertEqual(cfg_loaded_low.audio.max_duration, 10)
+
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -129,6 +129,9 @@ else:
 class SettingsDialog(_BaseDialog):
     """Preferences and configuration dialog with multi-tab interface."""
 
+    Accepted = 1
+    Rejected = 0
+
     if HAS_PYSIDE:
         config_applied = Signal(object)  # Emits AppConfig when saved/applied
 
@@ -192,6 +195,7 @@ class SettingsDialog(_BaseDialog):
                 microphone=cfg.audio.microphone,
                 sample_rate=cfg.audio.sample_rate,
                 channels=cfg.audio.channels,
+                max_duration=cfg.audio.max_duration,
             ),
             ui=UIConfig(
                 overlay_enabled=cfg.ui.overlay_enabled,
@@ -209,31 +213,248 @@ class SettingsDialog(_BaseDialog):
             ),
         )
 
+    # Property getters and setters with bidirectional Qt widget synchronization
+    @property
+    def dictation_hotkey(self) -> str:
+        if HAS_PYSIDE and hasattr(self, "combo_dict_hotkey"):
+            return self.combo_dict_hotkey.currentData() or self._dictation_hotkey
+        return self._dictation_hotkey
+
+    @dictation_hotkey.setter
+    def dictation_hotkey(self, val: str) -> None:
+        self._dictation_hotkey = val
+        if HAS_PYSIDE and hasattr(self, "combo_dict_hotkey"):
+            idx = self.combo_dict_hotkey.findData(val)
+            if idx >= 0:
+                self.combo_dict_hotkey.setCurrentIndex(idx)
+
+    @property
+    def dictation_mode(self) -> str:
+        if HAS_PYSIDE and hasattr(self, "combo_dict_mode"):
+            return self.combo_dict_mode.currentData() or self._dictation_mode
+        return self._dictation_mode
+
+    @dictation_mode.setter
+    def dictation_mode(self, val: str) -> None:
+        self._dictation_mode = val
+        if HAS_PYSIDE and hasattr(self, "combo_dict_mode"):
+            idx = self.combo_dict_mode.findData(val)
+            if idx >= 0:
+                self.combo_dict_mode.setCurrentIndex(idx)
+
+    @property
+    def stt_model(self) -> str:
+        if HAS_PYSIDE and hasattr(self, "combo_stt_model"):
+            return self.combo_stt_model.currentData() or self._stt_model
+        return self._stt_model
+
+    @stt_model.setter
+    def stt_model(self, val: str) -> None:
+        self._stt_model = val
+        if HAS_PYSIDE and hasattr(self, "combo_stt_model"):
+            idx = self.combo_stt_model.findData(val)
+            if idx >= 0:
+                self.combo_stt_model.setCurrentIndex(idx)
+                self._on_model_changed(idx)
+
+    @property
+    def language(self) -> str:
+        if HAS_PYSIDE and hasattr(self, "combo_language"):
+            return self.combo_language.currentData() or self._language
+        return self._language
+
+    @language.setter
+    def language(self, val: str) -> None:
+        self._language = val
+        if HAS_PYSIDE and hasattr(self, "combo_language"):
+            idx = self.combo_language.findData(val)
+            if idx >= 0:
+                self.combo_language.setCurrentIndex(idx)
+
+    @property
+    def format_commands(self) -> bool:
+        if HAS_PYSIDE and hasattr(self, "chk_format_commands"):
+            return self.chk_format_commands.isChecked()
+        return self._format_commands
+
+    @format_commands.setter
+    def format_commands(self, val: bool) -> None:
+        self._format_commands = bool(val)
+        if HAS_PYSIDE and hasattr(self, "chk_format_commands"):
+            self.chk_format_commands.setChecked(bool(val))
+
+    @property
+    def restore_clipboard(self) -> bool:
+        if HAS_PYSIDE and hasattr(self, "chk_restore_clipboard"):
+            return self.chk_restore_clipboard.isChecked()
+        return self._restore_clipboard
+
+    @restore_clipboard.setter
+    def restore_clipboard(self, val: bool) -> None:
+        self._restore_clipboard = bool(val)
+        if HAS_PYSIDE and hasattr(self, "chk_restore_clipboard"):
+            self.chk_restore_clipboard.setChecked(bool(val))
+
+    @property
+    def control_hotkey(self) -> str:
+        if HAS_PYSIDE and hasattr(self, "combo_ctrl_hotkey"):
+            return self.combo_ctrl_hotkey.currentData() or self._control_hotkey
+        return self._control_hotkey
+
+    @control_hotkey.setter
+    def control_hotkey(self, val: str) -> None:
+        self._control_hotkey = val
+        if HAS_PYSIDE and hasattr(self, "combo_ctrl_hotkey"):
+            idx = self.combo_ctrl_hotkey.findData(val)
+            if idx >= 0:
+                self.combo_ctrl_hotkey.setCurrentIndex(idx)
+
+    @property
+    def control_mode(self) -> str:
+        if HAS_PYSIDE and hasattr(self, "combo_ctrl_mode"):
+            return self.combo_ctrl_mode.currentData() or self._control_mode
+        return self._control_mode
+
+    @control_mode.setter
+    def control_mode(self, val: str) -> None:
+        self._control_mode = val
+        if HAS_PYSIDE and hasattr(self, "combo_ctrl_mode"):
+            idx = self.combo_ctrl_mode.findData(val)
+            if idx >= 0:
+                self.combo_ctrl_mode.setCurrentIndex(idx)
+
+    @property
+    def confirm_medium(self) -> bool:
+        if HAS_PYSIDE and hasattr(self, "chk_confirm_medium"):
+            return self.chk_confirm_medium.isChecked()
+        return self._confirm_medium
+
+    @confirm_medium.setter
+    def confirm_medium(self, val: bool) -> None:
+        self._confirm_medium = bool(val)
+        if HAS_PYSIDE and hasattr(self, "chk_confirm_medium"):
+            self.chk_confirm_medium.setChecked(bool(val))
+
+    @property
+    def confirm_high(self) -> bool:
+        if HAS_PYSIDE and hasattr(self, "chk_confirm_high"):
+            return self.chk_confirm_high.isChecked()
+        return self._confirm_high
+
+    @confirm_high.setter
+    def confirm_high(self, val: bool) -> None:
+        self._confirm_high = bool(val)
+        if HAS_PYSIDE and hasattr(self, "chk_confirm_high"):
+            self.chk_confirm_high.setChecked(bool(val))
+
+    @property
+    def microphone(self) -> str | None:
+        if HAS_PYSIDE and hasattr(self, "combo_mic"):
+            return self.combo_mic.currentData()
+        return self._microphone
+
+    @microphone.setter
+    def microphone(self, val: str | None) -> None:
+        self._microphone = val
+        if HAS_PYSIDE and hasattr(self, "combo_mic"):
+            idx = self.combo_mic.findData(val)
+            if idx >= 0:
+                self.combo_mic.setCurrentIndex(idx)
+            elif val is not None:
+                self.combo_mic.addItem(f"{val} (Configured)", val)
+                self.combo_mic.setCurrentIndex(self.combo_mic.count() - 1)
+            else:
+                self.combo_mic.setCurrentIndex(0)
+
+
+    @property
+    def max_duration(self) -> int:
+        if HAS_PYSIDE and hasattr(self, "spin_max_duration"):
+            return max(10, min(150, self.spin_max_duration.value()))
+        return max(10, min(150, getattr(self, "_max_duration", 60)))
+
+    @max_duration.setter
+    def max_duration(self, val: int) -> None:
+        clamped = max(10, min(150, int(val)))
+        self._max_duration = clamped
+        if HAS_PYSIDE and hasattr(self, "spin_max_duration"):
+            self.spin_max_duration.setValue(clamped)
+
+    @property
+    def run_at_startup(self) -> bool:
+        if HAS_PYSIDE and hasattr(self, "chk_startup"):
+            return self.chk_startup.isChecked()
+        return self._run_at_startup
+
+    @run_at_startup.setter
+    def run_at_startup(self, val: bool) -> None:
+        self._run_at_startup = bool(val)
+        if HAS_PYSIDE and hasattr(self, "chk_startup"):
+            self.chk_startup.setChecked(bool(val))
+
+    @property
+    def minimize_to_tray(self) -> bool:
+        if HAS_PYSIDE and hasattr(self, "chk_minimize_tray"):
+            return self.chk_minimize_tray.isChecked()
+        return self._minimize_to_tray
+
+    @minimize_to_tray.setter
+    def minimize_to_tray(self, val: bool) -> None:
+        self._minimize_to_tray = bool(val)
+        if HAS_PYSIDE and hasattr(self, "chk_minimize_tray"):
+            self.chk_minimize_tray.setChecked(bool(val))
+
+    @property
+    def history_retention_days(self) -> int:
+        if HAS_PYSIDE and hasattr(self, "spin_retention"):
+            return self.spin_retention.value()
+        return self._history_retention_days
+
+    @history_retention_days.setter
+    def history_retention_days(self, val: int) -> None:
+        self._history_retention_days = int(val)
+        if HAS_PYSIDE and hasattr(self, "spin_retention"):
+            self.spin_retention.setValue(int(val))
+
+    @property
+    def overlay_enabled(self) -> bool:
+        if HAS_PYSIDE and hasattr(self, "chk_overlay"):
+            return self.chk_overlay.isChecked()
+        return self._overlay_enabled
+
+    @overlay_enabled.setter
+    def overlay_enabled(self, val: bool) -> None:
+        self._overlay_enabled = bool(val)
+        if HAS_PYSIDE and hasattr(self, "chk_overlay"):
+            self.chk_overlay.setChecked(bool(val))
+
     def _init_ui(self) -> None:
         """Set up the dialog layout, tabs, and action buttons."""
         self.setWindowTitle("Voice Agent - Settings & Preferences")
 
-        # Headless attributes
-        self.dictation_hotkey: str = self._current_config.dictation.hotkey
-        self.dictation_mode: str = self._current_config.dictation.mode
-        self.stt_model: str = self._current_config.dictation.model
-        self.language: str = self._current_config.dictation.language
-        self.format_commands: bool = self._current_config.dictation.format_commands
-        self.restore_clipboard: bool = self._current_config.dictation.restore_clipboard
+        # Baseline internal attributes
+        self._dictation_hotkey: str = self._current_config.dictation.hotkey
+        self._dictation_mode: str = self._current_config.dictation.mode
+        self._stt_model: str = self._current_config.dictation.model
+        self._language: str = self._current_config.dictation.language
+        self._format_commands: bool = self._current_config.dictation.format_commands
+        self._restore_clipboard: bool = self._current_config.dictation.restore_clipboard
 
-        self.control_hotkey: str = self._current_config.control.hotkey
-        self.control_mode: str = self._current_config.control.mode
-        self.confirm_medium: bool = self._current_config.control.confirm_medium
-        self.confirm_high: bool = self._current_config.control.confirm_high
+        self._control_hotkey: str = self._current_config.control.hotkey
+        self._control_mode: str = self._current_config.control.mode
+        self._confirm_medium: bool = self._current_config.control.confirm_medium
+        self._confirm_high: bool = self._current_config.control.confirm_high
 
-        self.microphone: str | None = self._current_config.audio.microphone
+        self._microphone: str | None = self._current_config.audio.microphone
+        self._max_duration: int = self._current_config.audio.max_duration
 
-        self.run_at_startup: bool = self._current_config.general.run_at_startup
-        self.minimize_to_tray: bool = self._current_config.general.minimize_to_tray
-        self.history_retention_days: int = self._current_config.storage.history_retention_days
-        self.overlay_enabled: bool = self._current_config.ui.overlay_enabled
+        self._run_at_startup: bool = self._current_config.general.run_at_startup
+        self._minimize_to_tray: bool = self._current_config.general.minimize_to_tray
+        self._history_retention_days: int = self._current_config.storage.history_retention_days
+        self._overlay_enabled: bool = self._current_config.ui.overlay_enabled
 
         self.refresh_microphones()
+
 
         if not HAS_PYSIDE:
             return
@@ -274,6 +495,8 @@ class SettingsDialog(_BaseDialog):
         button_layout.addWidget(self.btn_cancel)
 
         main_layout.addLayout(button_layout)
+        self.refresh_microphones()
+
 
     def _build_dictation_tab(self) -> QWidget:
         """Construct the Dictation tab."""
@@ -377,6 +600,21 @@ class SettingsDialog(_BaseDialog):
         dev_row.addWidget(self.combo_mic, 1)
         dev_row.addWidget(self.btn_refresh_mics)
         vbox.addLayout(dev_row)
+
+        # Max recording duration row
+        duration_row = QHBoxLayout()
+        duration_label = QLabel("Max Recording Duration:")
+        self.spin_max_duration = QSpinBox()
+        self.spin_max_duration.setRange(10, 150)
+        self.spin_max_duration.setSingleStep(5)
+        self.spin_max_duration.setSuffix(" seconds")
+        self.spin_max_duration.setToolTip(
+            "Maximum allowed duration for a single recording take (10 to 150 seconds)."
+        )
+        duration_row.addWidget(duration_label)
+        duration_row.addWidget(self.spin_max_duration)
+        duration_row.addStretch()
+        vbox.addLayout(duration_row)
 
         # Live level meter preview
         meter_group = QGroupBox("Microphone Test & Level Meter")
@@ -519,7 +757,7 @@ class SettingsDialog(_BaseDialog):
         self.overlay_x = config.ui.overlay_x
         self.overlay_y = config.ui.overlay_y
 
-        # Update headless properties
+        # Update properties (automatically synchronizes Qt widgets if available)
         self.dictation_hotkey = config.dictation.hotkey
         self.dictation_mode = config.dictation.mode
         self.stt_model = config.dictation.model
@@ -533,138 +771,53 @@ class SettingsDialog(_BaseDialog):
         self.confirm_high = config.control.confirm_high
 
         self.microphone = config.audio.microphone
+        self.max_duration = config.audio.max_duration
 
         self.run_at_startup = config.general.run_at_startup
         self.minimize_to_tray = config.general.minimize_to_tray
         self.history_retention_days = config.storage.history_retention_days
         self.overlay_enabled = config.ui.overlay_enabled
 
-        if not HAS_PYSIDE or not hasattr(self, "tabs"):
-            return
-
-        # Dictation Tab
-        idx_dict_hotkey = self.combo_dict_hotkey.findData(config.dictation.hotkey)
-        if idx_dict_hotkey >= 0:
-            self.combo_dict_hotkey.setCurrentIndex(idx_dict_hotkey)
-
-        idx_dict_mode = self.combo_dict_mode.findData(config.dictation.mode)
-        if idx_dict_mode >= 0:
-            self.combo_dict_mode.setCurrentIndex(idx_dict_mode)
-
-        idx_model = self.combo_stt_model.findData(config.dictation.model)
-        if idx_model >= 0:
-            self.combo_stt_model.setCurrentIndex(idx_model)
-        self._on_model_changed(self.combo_stt_model.currentIndex())
-
-        idx_lang = self.combo_language.findData(config.dictation.language)
-        if idx_lang >= 0:
-            self.combo_language.setCurrentIndex(idx_lang)
-
-        self.chk_format_commands.setChecked(config.dictation.format_commands)
-        self.chk_restore_clipboard.setChecked(config.dictation.restore_clipboard)
-
-        # Control Tab
-        idx_ctrl_hotkey = self.combo_ctrl_hotkey.findData(config.control.hotkey)
-        if idx_ctrl_hotkey >= 0:
-            self.combo_ctrl_hotkey.setCurrentIndex(idx_ctrl_hotkey)
-
-        idx_ctrl_mode = self.combo_ctrl_mode.findData(config.control.mode)
-        if idx_ctrl_mode >= 0:
-            self.combo_ctrl_mode.setCurrentIndex(idx_ctrl_mode)
-
-        self.chk_confirm_medium.setChecked(config.control.confirm_medium)
-        self.chk_confirm_high.setChecked(config.control.confirm_high)
-
-        # Audio Tab
-        idx_mic = self.combo_mic.findData(config.audio.microphone)
-        if idx_mic >= 0:
-            self.combo_mic.setCurrentIndex(idx_mic)
-        else:
-            self.combo_mic.setCurrentIndex(0)
-
-        # General Tab
-        self.chk_startup.setChecked(config.general.run_at_startup)
-        self.chk_minimize_tray.setChecked(config.general.minimize_to_tray)
-        self.spin_retention.setValue(config.storage.history_retention_days)
-        self.chk_overlay.setChecked(config.ui.overlay_enabled)
-        if hasattr(self, "lbl_reset_status"):
+        if HAS_PYSIDE and hasattr(self, "lbl_reset_status"):
             self.lbl_reset_status.setText("")
 
     def get_current_config(self) -> AppConfig:
-        """Extract and construct AppConfig from current widget values."""
-        if HAS_PYSIDE and hasattr(self, "tabs"):
-            dict_hotkey = self.combo_dict_hotkey.currentData() or "ctrl_r"
-            dict_mode = self.combo_dict_mode.currentData() or "both"
-            stt_model = self.combo_stt_model.currentData() or "base"
-            lang = self.combo_language.currentData() or "en"
-            format_cmds = self.chk_format_commands.isChecked()
-            restore_clip = self.chk_restore_clipboard.isChecked()
-
-            ctrl_hotkey = self.combo_ctrl_hotkey.currentData() or "alt_r"
-            ctrl_mode = self.combo_ctrl_mode.currentData() or "both"
-            confirm_med = self.chk_confirm_medium.isChecked()
-            confirm_hi = self.chk_confirm_high.isChecked()
-
-            mic = self.combo_mic.currentData()
-
-            startup = self.chk_startup.isChecked()
-            min_tray = self.chk_minimize_tray.isChecked()
-            retention = self.spin_retention.value()
-            overlay_en = self.chk_overlay.isChecked()
-        else:
-            dict_hotkey = self.dictation_hotkey
-            dict_mode = self.dictation_mode
-            stt_model = self.stt_model
-            lang = self.language
-            format_cmds = self.format_commands
-            restore_clip = self.restore_clipboard
-
-            ctrl_hotkey = self.control_hotkey
-            ctrl_mode = self.control_mode
-            confirm_med = self.confirm_medium
-            confirm_hi = self.confirm_high
-
-            mic = self.microphone
-
-            startup = self.run_at_startup
-            min_tray = self.minimize_to_tray
-            retention = self.history_retention_days
-            overlay_en = self.overlay_enabled
-
+        """Extract and construct AppConfig from current widget/property values."""
         return AppConfig(
             dictation=DictationConfig(
-                hotkey=dict_hotkey,
-                mode=dict_mode,
-                model=stt_model,
-                language=lang,
-                format_commands=format_cmds,
-                restore_clipboard=restore_clip,
+                hotkey=self.dictation_hotkey,
+                mode=self.dictation_mode,
+                model=self.stt_model,
+                language=self.language,
+                format_commands=self.format_commands,
+                restore_clipboard=self.restore_clipboard,
                 keep_in_clipboard=self._current_config.dictation.keep_in_clipboard,
             ),
             control=ControlConfig(
-                hotkey=ctrl_hotkey,
-                mode=ctrl_mode,
-                confirm_medium=confirm_med,
-                confirm_high=confirm_hi,
+                hotkey=self.control_hotkey,
+                mode=self.control_mode,
+                confirm_medium=self.confirm_medium,
+                confirm_high=self.confirm_high,
             ),
             audio=AudioConfig(
-                microphone=mic,
+                microphone=self.microphone,
                 sample_rate=self._current_config.audio.sample_rate,
                 channels=self._current_config.audio.channels,
+                max_duration=self.max_duration,
             ),
             ui=UIConfig(
-                overlay_enabled=overlay_en,
+                overlay_enabled=self.overlay_enabled,
                 overlay_x=self.overlay_x,
                 overlay_y=self.overlay_y,
                 opacity=self._current_config.ui.opacity,
             ),
             storage=StorageConfig(
-                history_retention_days=retention,
+                history_retention_days=self.history_retention_days,
                 max_history_entries=self._current_config.storage.max_history_entries,
             ),
             general=GeneralConfig(
-                run_at_startup=startup,
-                minimize_to_tray=min_tray,
+                run_at_startup=self.run_at_startup,
+                minimize_to_tray=self.minimize_to_tray,
             ),
         )
 

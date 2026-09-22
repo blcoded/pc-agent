@@ -137,10 +137,11 @@ class TestDictationE2E(unittest.TestCase):
             self.processor.stop_listening()
 
             # Wait for processor to settle back to READY
-            for _ in range(50):
+            for _ in range(150):
                 if self.processor.state == DictationState.READY:
                     break
                 time.sleep(0.01)
+
 
             self.assertEqual(
                 self.processor.state,

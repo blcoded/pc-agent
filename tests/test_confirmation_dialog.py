@@ -1,10 +1,17 @@
-"""Unit tests for Risk Confirmation Modal Dialog (TASK-5.5)."""
-
+import os
 import unittest
 from unittest.mock import MagicMock, patch
 
+os.environ["QT_QPA_PLATFORM"] = "offscreen"
+try:
+    from PySide6.QtWidgets import QApplication
+    app = QApplication.instance() or QApplication([])
+except ImportError:
+    app = None
+
 from voice_agent.control.models import ActionRequest, ActionType, RiskLevel
 from voice_agent.ui.confirmation import RiskConfirmationDialog, request_user_confirmation
+
 
 
 class TestRiskConfirmationDialog(unittest.TestCase):

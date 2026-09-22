@@ -150,6 +150,7 @@ def main() -> int:
         recorder = AudioRecorder(
             sample_rate=config.audio.sample_rate,
             channels=config.audio.channels,
+            max_duration=config.audio.max_duration,
             on_level=overlay.set_audio_level,
         )
 
@@ -188,10 +189,12 @@ def main() -> int:
         def on_settings_applied(new_config: AppConfig) -> None:
             nonlocal config, active_device_id
             config = new_config
+            recorder.set_max_duration(new_config.audio.max_duration)
             mic_manager.set_device(new_config.audio.microphone)
             new_active_mic = mic_manager.active_device
             active_device_id = new_active_mic.id if new_active_mic else None
             logger.info("Microphone updated via settings: %s (id=%s)", new_active_mic, active_device_id)
+
 
             hotkey_manager.reconfigure(
                 dictation_hotkey=new_config.dictation.hotkey,
@@ -393,7 +396,10 @@ def main() -> int:
         hotkey_manager.start()
 
         def handle_max_duration() -> None:
-            logger.warning("Max audio recording duration reached (60s). Finalizing active capture.")
+            logger.warning(
+                "Max audio recording duration reached (%.1fs). Finalizing active capture.",
+                recorder.max_duration,
+            )
             if hotkey_manager.control_detector.is_active:
                 hotkey_manager.control_detector.reset()
                 handle_control_stop()
