@@ -125,13 +125,28 @@ class DictationProcessor:
     def _process_audio(self, audio: np.ndarray) -> None:
         """Execute full pipeline: STT -> Format -> Normalize -> Insert -> History."""
         duration_sec = len(audio) / 16000.0
+        max_amp = float(np.max(np.abs(audio))) if len(audio) > 0 else 0.0
+        logger.info(
+            "Dictation audio captured: %.2f sec (%d samples), peak amplitude: %.4f",
+            duration_sec,
+            len(audio),
+            max_amp,
+        )
         try:
+            if max_amp < 0.0005:
+                logger.warning(
+                    "Captured audio was nearly silent (peak=%.5f). Verify microphone is not muted and correct device is chosen.",
+                    max_amp,
+                )
+
             # 1. Speech-to-Text
             raw_text = self.stt_engine.transcribe(audio, language=self.language).strip()
             if not raw_text:
-                logger.debug("No speech recognized in audio buffer.")
+                logger.info("No speech recognized in audio buffer (duration=%.2fs).", duration_sec)
                 self._set_state(DictationState.READY)
                 return
+
+            logger.info("Speech transcribed: %r", raw_text)
 
             # 2. Spoken Formatting Commands
             if self.format_commands:
@@ -151,6 +166,7 @@ class DictationProcessor:
             # 4. Text Insertion
             self._set_state(DictationState.TYPING)
             result = self.inserter.insert(processed_text)
+            logger.info("Text insertion outcome: %s (target='%s')", result.status.value, result.target_title)
 
             # 5. History Record Storage
             entry = HistoryEntry(

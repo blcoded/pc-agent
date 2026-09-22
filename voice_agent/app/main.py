@@ -17,6 +17,7 @@ from voice_agent.app.lifecycle import (
     SingleInstanceLock,
 )
 from voice_agent.app.logging import get_logger, setup_logging
+from voice_agent.audio.microphone import MicrophoneManager
 from voice_agent.audio.recorder import AudioRecorder
 from voice_agent.clipboard.manager import ClipboardManager
 from voice_agent.control.command_router import CommandRouter
@@ -80,10 +81,20 @@ def main() -> int:
     # 4. Clipboard and Text Inserter
     clipboard = ClipboardManager()
 
-    # 5. Speech-to-Text Engine
+    # 5. Microphone Resolution
+    mic_manager = MicrophoneManager(configured_device=config.audio.microphone)
+    active_mic = mic_manager.active_device
+    active_device_id: int | None = active_mic.id if active_mic else None
+    logger.info("Active input microphone: %s (id=%s)", active_mic, active_device_id)
+
+    # 6. Speech-to-Text Engine
     stt_engine = FasterWhisperEngine(model_size=config.dictation.model)
 
-    # 6. Initialize PySide6 Application & UI
+    # Pre-warm Whisper model asynchronously on startup so first speech inference is instant
+    if not args.offscreen:
+        lifecycle.run_async(stt_engine.load_model)
+
+    # 7. Initialize PySide6 Application & UI
     try:
         from PySide6.QtCore import QCoreApplication, QObject, Qt, Signal
         from PySide6.QtWidgets import QApplication, QMessageBox
@@ -130,19 +141,19 @@ def main() -> int:
         bridge = ConfirmationBridge()
         confirm_handler = bridge.ask
 
-        # 7. Floating Status Overlay Widget
+        # 8. Floating Status Overlay Widget
         overlay = FloatingStatusOverlay(config=config)
         lifecycle.subscribe_dictation_state(overlay.set_dictation_state)
         lifecycle.subscribe_control_state(overlay.set_control_state)
 
-        # 8. Audio Recorder (connected to overlay audio level meter)
+        # 9. Audio Recorder (connected to overlay audio level meter)
         recorder = AudioRecorder(
             sample_rate=config.audio.sample_rate,
             channels=config.audio.channels,
             on_level=overlay.set_audio_level,
         )
 
-        # 9. Inserter with Fallback Notification
+        # 10. Inserter with Fallback Notification
         inserter = TextInserter(
             clipboard_manager=clipboard,
             on_no_target=lambda title, msg: tray.show_notification(
@@ -152,7 +163,7 @@ def main() -> int:
             else None,
         )
 
-        # 10. Dictation Processor Coordinator
+        # 11. Dictation Processor Coordinator
         dictation_processor = DictationProcessor(
             recorder=recorder,
             stt_engine=stt_engine,
@@ -163,7 +174,7 @@ def main() -> int:
             format_commands=config.dictation.format_commands,
         )
 
-        # 11. Command Router for Control Mode
+        # 12. Command Router for Control Mode
         command_router = CommandRouter(
             database=db,
             confirm_handler=confirm_handler,
@@ -171,12 +182,17 @@ def main() -> int:
             confirm_high=config.control.confirm_high,
         )
 
-        # 12. History Window & Settings Dialog
+        # 13. History Window & Settings Dialog
         history_window = HistoryViewerWindow(repository=history_repo, clipboard=clipboard)
 
         def on_settings_applied(new_config: AppConfig) -> None:
-            nonlocal config
+            nonlocal config, active_device_id
             config = new_config
+            mic_manager.set_device(new_config.audio.microphone)
+            new_active_mic = mic_manager.active_device
+            active_device_id = new_active_mic.id if new_active_mic else None
+            logger.info("Microphone updated via settings: %s (id=%s)", new_active_mic, active_device_id)
+
             hotkey_manager.reconfigure(
                 dictation_hotkey=new_config.dictation.hotkey,
                 control_hotkey=new_config.control.hotkey,
@@ -192,9 +208,13 @@ def main() -> int:
             elif not new_config.ui.overlay_enabled:
                 overlay.hide()
 
-        settings_dialog = SettingsDialog(config=config, on_applied=on_settings_applied)
+        settings_dialog = SettingsDialog(
+            config=config,
+            mic_manager=mic_manager,
+            on_applied=on_settings_applied,
+        )
 
-        # 13. System Tray Manager
+        # 14. System Tray Manager
         def toggle_overlay() -> None:
             if overlay.isVisible():
                 overlay.hide()
@@ -238,17 +258,17 @@ def main() -> int:
         # Show initial balloon toast pointing to system tray
         tray.show_notification(
             "PC Voice Agent",
-            "Voice Agent is running! Press Right Ctrl to dictate or Right Alt for control.",
+            f"Voice Agent is running! Using mic: {active_mic.name if active_mic else 'Default'}.\nPress Right Ctrl to dictate or Right Alt for control.",
         )
 
-        # 14. Control Mode Audio Capture Handlers
+        # 15. Control Mode Audio Capture Handlers
         def handle_control_start() -> None:
             if tray.is_paused:
                 return
-            logger.info("Control hotkey triggered: starting audio capture...")
+            logger.info("Control hotkey triggered: starting audio capture (device_id=%s)...", active_device_id)
             lifecycle.set_control_state(ControlState.LISTENING)
             try:
-                recorder.start_recording()
+                recorder.start_recording(device_id=active_device_id)
             except Exception as exc:
                 logger.error("Failed to start recording for control: %s", exc)
                 lifecycle.set_control_state(ControlState.ERROR)
@@ -274,10 +294,29 @@ def main() -> int:
 
             def _process_control_audio(audio_data: Any) -> None:
                 try:
+                    duration_sec = len(audio_data) / 16000.0
+                    import numpy as np
+                    max_amp = float(np.max(np.abs(audio_data))) if len(audio_data) > 0 else 0.0
+                    logger.info(
+                        "Control audio captured: %.2f sec (%d samples), peak amplitude: %.4f",
+                        duration_sec,
+                        len(audio_data),
+                        max_amp,
+                    )
+                    if max_amp < 0.0005:
+                        logger.warning("Control audio was nearly silent (peak=%.5f). Check microphone.", max_amp)
+                        tray.show_notification(
+                            "Microphone Warning",
+                            "Microphone captured silence. Check your microphone device in Settings.",
+                            icon_type="warning",
+                        )
+                        lifecycle.set_control_state(ControlState.READY)
+                        return
+
                     raw_text = stt_engine.transcribe(audio_data, language="en")
                     clean_text = raw_text.strip()
                     if not clean_text:
-                        logger.debug("No speech recognized for control command.")
+                        logger.info("No speech recognized for control command.")
                         lifecycle.set_control_state(ControlState.READY)
                         return
 
@@ -287,6 +326,11 @@ def main() -> int:
                         lifecycle.set_control_state(ControlState.RESULT)
                     else:
                         lifecycle.set_control_state(ControlState.ERROR)
+                        tray.show_notification(
+                            "Control Command Unrecognized",
+                            f"'{clean_text}' is not a recognized PC command.\nTip: Press Right Ctrl to dictate text.",
+                            icon_type="warning",
+                        )
                 except Exception as exc:
                     logger.error("Error executing voice command: %s", exc, exc_info=True)
                     lifecycle.set_control_state(ControlState.ERROR)
@@ -299,14 +343,16 @@ def main() -> int:
         def handle_dictation_start() -> None:
             if tray.is_paused:
                 return
-            dictation_processor.start_listening()
+            logger.info("Dictation hotkey triggered: starting audio capture (device_id=%s)...", active_device_id)
+            dictation_processor.start_listening(device_id=active_device_id)
 
         def handle_dictation_stop() -> None:
             if tray.is_paused:
                 return
+            logger.info("Dictation hotkey released: processing audio...")
             dictation_processor.stop_listening()
 
-        # 15. Global Hotkey Manager
+        # 16. Global Hotkey Manager
         hotkey_manager = HotkeyManager(
             dictation_hotkey=config.dictation.hotkey,
             control_hotkey=config.control.hotkey,
@@ -324,16 +370,19 @@ def main() -> int:
         lifecycle.add_shutdown_hook(dictation_processor.shutdown)
         lifecycle.add_shutdown_hook(lambda: recorder.reset() if recorder.is_recording else None)
 
-        # 16. Show Floating Overlay if enabled
+        # 17. Show Floating Overlay if enabled
         if config.ui.overlay_enabled and not args.minimized and not args.offscreen:
             overlay.show()
 
         # Print friendly guidance in terminal
+        mic_name = active_mic.name if active_mic else "Default"
         print("=" * 65)
         print("[*] PC Voice Agent is running!")
         print("=" * 65)
         print(" * Dictation Mode:  Press Right Ctrl (Tap to toggle or hold to talk)")
+        print("   -> Tip: If your keyboard lacks Right Ctrl, open Settings to use Left Ctrl or F8")
         print(" * PC Control Mode: Press Right Alt (Tap or hold to speak command)")
+        print(f" * Active Mic:      {mic_name}")
         print(" * Status Overlay:  Floating pill shown on your screen")
         print(" * System Tray:     Microphone icon in bottom-right Windows taskbar")
         print("                    (Click '^' upward chevron if icons are hidden)")

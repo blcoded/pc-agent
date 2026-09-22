@@ -79,7 +79,7 @@ class MicrophoneManager:
         default_input_idx: int = -1
         try:
             default_device = self._sd.default.device
-            if isinstance(default_device, (list, tuple)) and len(default_device) > 0:
+            if hasattr(default_device, "__getitem__"):
                 default_input_idx = int(default_device[0])
             elif isinstance(default_device, int):
                 default_input_idx = default_device
@@ -137,9 +137,28 @@ class MicrophoneManager:
             logger.warning("No audio input devices found on system.")
             return None, False
 
-        # If no target specified, use system default
+        # If no target specified, use system default (with smart physical mic preference if default is virtual)
         if target is None or target == "" or target == "default":
             default_dev = self.get_default_input_device()
+            if default_dev:
+                dev_name_lower = default_dev.name.lower()
+                virtual_keywords = ("virtual", "audiorelay", "cable output", "stereo mix", "sound mapper", "primary sound")
+                if any(k in dev_name_lower for k in virtual_keywords):
+                    for dev in devices:
+                        d_name = dev.name.lower()
+                        if not any(k in d_name for k in virtual_keywords) and (
+                            "microphone" in d_name
+                            or "mic" in d_name
+                            or "array" in d_name
+                            or "realtek" in d_name
+                            or "high definition" in d_name
+                        ):
+                            logger.info(
+                                "Default input device '%s' is virtual; auto-selecting physical microphone '%s'",
+                                default_dev.name,
+                                dev.name,
+                            )
+                            return dev, False
             return default_dev, False
 
         # Match by integer ID
