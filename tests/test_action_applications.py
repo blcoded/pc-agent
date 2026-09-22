@@ -116,6 +116,24 @@ class TestActionApplications(unittest.TestCase):
         self.assertFalse(result.success)
         self.assertIn("No matching window found", result.error_message or "")
 
+    def test_open_app_protocol_uri(self) -> None:
+        """Test launching an application via protocol URI (e.g. ms-settings:)."""
+        mock_launcher = MagicMock()
+        action = OpenAppAction(launcher=mock_launcher)
+        result = action.run({"app_name": "settings"})
+        self.assertTrue(result.success)
+        mock_launcher.assert_called_once_with(["ms-settings:"])
+
+    def test_open_app_windows_store_resolution(self) -> None:
+        """Test that Windows store apps like spotify resolve properly."""
+        mock_launcher = MagicMock()
+        action = OpenAppAction(launcher=mock_launcher)
+        result = action.run({"app_name": "spotify"})
+        self.assertTrue(result.success)
+        mock_launcher.assert_called_once()
+        called_args = mock_launcher.call_args[0][0]
+        self.assertTrue(any("spotify" in arg.lower() for arg in called_args))
+
     def test_native_backend_instantiation(self) -> None:
         """Test NativeWin32WindowBackend initialization without crashing."""
         native = NativeWin32WindowBackend()

@@ -324,13 +324,32 @@ def main() -> int:
                     report = command_router.execute(clean_text)
                     if report.is_success:
                         lifecycle.set_control_state(ControlState.RESULT)
+                        tray.show_notification(
+                            "Command Executed",
+                            f"Executed: '{clean_text}'",
+                            icon_type="info",
+                        )
                     else:
                         lifecycle.set_control_state(ControlState.ERROR)
-                        tray.show_notification(
-                            "Control Command Unrecognized",
-                            f"'{clean_text}' is not a recognized PC command.\nTip: Press Right Ctrl to dictate text.",
-                            icon_type="warning",
-                        )
+                        err_msg = report.error_message or ""
+                        if "Could not parse" in err_msg or "Unsupported command" in err_msg:
+                            tray.show_notification(
+                                "Command Unrecognized",
+                                f"'{clean_text}' is not a recognized PC command.\nTip: Press Right Ctrl to dictate text.",
+                                icon_type="warning",
+                            )
+                        elif report.status == "cancelled":
+                            tray.show_notification(
+                                "Command Cancelled",
+                                f"Command '{clean_text}' was cancelled.",
+                                icon_type="info",
+                            )
+                        else:
+                            tray.show_notification(
+                                "Command Failed",
+                                f"{err_msg}",
+                                icon_type="error",
+                            )
                 except Exception as exc:
                     logger.error("Error executing voice command: %s", exc, exc_info=True)
                     lifecycle.set_control_state(ControlState.ERROR)

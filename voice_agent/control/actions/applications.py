@@ -26,11 +26,16 @@ from voice_agent.control.action_validator import ActionValidator
 
 logger = logging.getLogger(__name__)
 
+try:
+    import winreg
+except ImportError:
+    winreg = None  # type: ignore[assignment]
+
 # Constants
 WM_CLOSE = 0x0010
 SW_RESTORE = 9
 
-# Common Windows application aliases mapped to binary names
+# Common Windows application aliases mapped to binary names or protocols
 DEFAULT_APP_ALIASES: dict[str, str] = {
     "notepad": "notepad.exe",
     "calc": "calc.exe",
@@ -40,6 +45,8 @@ DEFAULT_APP_ALIASES: dict[str, str] = {
     "edge": "msedge.exe",
     "microsoft edge": "msedge.exe",
     "firefox": "firefox.exe",
+    "brave": "brave.exe",
+    "brave browser": "brave.exe",
     "explorer": "explorer.exe",
     "file explorer": "explorer.exe",
     "paint": "mspaint.exe",
@@ -49,9 +56,20 @@ DEFAULT_APP_ALIASES: dict[str, str] = {
     "code": "code.cmd",
     "vs code": "code.cmd",
     "vscode": "code.cmd",
+    "visual studio code": "code.cmd",
     "spotify": "spotify.exe",
     "discord": "discord.exe",
     "slack": "slack.exe",
+    "word": "winword.exe",
+    "microsoft word": "winword.exe",
+    "excel": "excel.exe",
+    "microsoft excel": "excel.exe",
+    "powerpoint": "powerpnt.exe",
+    "microsoft powerpoint": "powerpnt.exe",
+    "vlc": "vlc.exe",
+    "vlc media player": "vlc.exe",
+    "settings": "ms-settings:",
+    "windows settings": "ms-settings:",
 }
 
 
@@ -199,6 +217,68 @@ class OpenAppAction(Action):
         self.validator.validate_app_name(params["app_name"])
         return True
 
+    def _resolve_application(self, target_binary: str, app_lower: str) -> str | None:
+        """Resolve target application to an executable or shortcut path on the system."""
+        # 1. Absolute path check
+        if os.path.isabs(target_binary) and os.path.exists(target_binary):
+            return target_binary
+
+        # 2. PATH resolution via shutil.which
+        for cand in (target_binary, f"{target_binary}.exe", f"{app_lower}.exe"):
+            found = shutil.which(cand)
+            if found:
+                return found
+
+        # 3. Windows Store Apps (App Execution Aliases in %LOCALAPPDATA%\Microsoft\WindowsApps)
+        winapps_dir = os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\WindowsApps")
+        if os.path.isdir(winapps_dir):
+            for cand in (target_binary, f"{target_binary}.exe", f"{app_lower}.exe"):
+                full_path = os.path.join(winapps_dir, cand)
+                if os.path.exists(full_path):
+                    return full_path
+            # Case-insensitive directory scan
+            target_low = target_binary.lower()
+            try:
+                for entry in os.listdir(winapps_dir):
+                    entry_low = entry.lower()
+                    if entry_low in (target_low, f"{target_low}.exe", f"{app_lower}.exe"):
+                        return os.path.join(winapps_dir, entry)
+            except OSError:
+                pass
+
+        # 4. Windows Registry App Paths (HKLM and HKCU)
+        if winreg and os.name == "nt":
+            for root_hkey in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
+                for key_name in (target_binary, f"{target_binary}.exe", f"{app_lower}.exe"):
+                    try:
+                        key_path = rf"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\{key_name}"
+                        with winreg.OpenKey(root_hkey, key_path) as k:
+                            raw_val, _ = winreg.QueryValueEx(k, "")
+                            if raw_val:
+                                expanded = os.path.expandvars(raw_val.strip().strip('"'))
+                                if os.path.exists(expanded):
+                                    return expanded
+                    except Exception:
+                        pass
+
+        # 5. Start Menu Shortcuts (.lnk files)
+        for start_dir in (
+            os.path.expandvars(r"%APPDATA%\Microsoft\Windows\Start Menu\Programs"),
+            os.path.expandvars(r"%ProgramData%\Microsoft\Windows\Start Menu\Programs"),
+        ):
+            if os.path.isdir(start_dir):
+                try:
+                    for root_dir, _, files in os.walk(start_dir):
+                        for f in files:
+                            if f.lower().endswith(".lnk"):
+                                stem = f[:-4].lower()
+                                if stem in (app_lower, target_binary.lower().removesuffix(".exe")):
+                                    return os.path.join(root_dir, f)
+                except Exception:
+                    pass
+
+        return None
+
     def execute(self, params: dict[str, Any]) -> ActionResult:
         app_name = params["app_name"].strip()
         app_lower = app_name.lower()
@@ -206,13 +286,63 @@ class OpenAppAction(Action):
         # Resolve alias if present
         target_binary = self.aliases.get(app_lower, app_name)
 
-        # Check if binary exists in PATH or is absolute path
-        resolved_bin = shutil.which(target_binary) or target_binary
+        # Protocol URI handling (e.g. "ms-settings:")
+        if target_binary.endswith(":") or "://" in target_binary:
+            try:
+                if self.launcher is subprocess.Popen:
+                    if os.name == "nt" and hasattr(os, "startfile"):
+                        os.startfile(target_binary)
+                    else:
+                        subprocess.Popen(["xdg-open", target_binary])
+                else:
+                    self.launcher([target_binary])
+                logger.info("Launched protocol target '%s' for '%s'", target_binary, app_name)
+                return ActionResult(
+                    success=True,
+                    output={"app_name": app_name, "target": target_binary, "pid": None},
+                )
+            except Exception as exc:
+                logger.error("Failed to launch protocol '%s': %s", target_binary, exc)
+                return ActionResult(
+                    success=False,
+                    output=None,
+                    error_message=f"Could not launch application '{app_name}': {exc}",
+                )
+
+        # Resolve executable path on system
+        resolved_bin = self._resolve_application(target_binary, app_lower)
+
+        # If not resolved to a file on disk:
+        if not resolved_bin:
+            # If custom launcher was supplied (e.g. in unit tests), use target_binary with it
+            if self.launcher is not subprocess.Popen:
+                resolved_bin = target_binary
+            else:
+                # Try os.startfile as a fallback before failing
+                try:
+                    if os.name == "nt" and hasattr(os, "startfile"):
+                        os.startfile(target_binary)
+                        logger.info("Launched via os.startfile: '%s'", target_binary)
+                        return ActionResult(
+                            success=True,
+                            output={"app_name": app_name, "binary": target_binary, "pid": None},
+                        )
+                except Exception:
+                    pass
+                return ActionResult(
+                    success=False,
+                    output=None,
+                    error_message=f"Could not launch application '{app_name}': Executable not found on system",
+                )
 
         try:
-            # Launch without shell=True to avoid injection
-            proc = self.launcher([resolved_bin])
-            pid = getattr(proc, "pid", None)
+            if resolved_bin.lower().endswith(".lnk") and self.launcher is subprocess.Popen:
+                os.startfile(resolved_bin)
+                pid = None
+            else:
+                proc = self.launcher([resolved_bin])
+                pid = getattr(proc, "pid", None)
+
             logger.info("Launched application '%s' (binary='%s', pid=%s)", app_name, resolved_bin, pid)
             return ActionResult(
                 success=True,
